@@ -3,10 +3,11 @@
 import mtpy as mt
 from pathlib import Path
 
-directory_path = Path("./data")
+directory_path = Path("./data_corrected")
 
-inversion_title = 'top_line_2d'
-stations2invert = [1216, 1227, 1238, 1249, 1260, 1271, 1282, 1293, 1301, 1312]
+inversion_title = 'P10cf'
+# stations2invert = [1216, 1227, 1238, 1249, 1260, 1271, 1282, 1293, 1301, 1312]
+stations2invert = [1232, 1233, 1234, 1235, 1236, 1237, 1238]
 
 mtc = mt.MTCollection()
 mtc.open_collection(inversion_title)

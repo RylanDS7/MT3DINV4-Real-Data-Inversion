@@ -47,6 +47,8 @@ dat = mesh.plot_image(
     ax=ax,
     # grid=True,
     clim=clim,
+    range_x=[rx_locs[:,0].min()-1000, rx_locs[:,0].max()+1000],
+    range_y=[rx_locs[:,2].min()-2000, rx_locs[:,2].max()+100],
     pcolor_opts={"cmap": "Spectral"}
 )
 

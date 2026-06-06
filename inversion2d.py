@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 import utm
 import mtpy as mt
 
-
-inversion_title = 'test_collection100'
+inversion_title = 'P10cf'
 
 # ==================================================
 # Load data
@@ -20,18 +19,11 @@ mtc = mt.MTCollection()
 mtc.open_collection(inversion_title)
 mtd = mtc.to_mt_data()
 mtc.close_collection()
-mtd.rotate(45)
-
-rxData = {}
-# for tf in mtd.keys():
-#     freqDict = {}
-#     freqs = mtd[tf].Z.frequency
-#     for i, f in enumerate(freqs):
-#         freqDict[f] = mtd[tf].impedance[i].values
-#     rxData[tf] = freqDict
+mtd.rotate(90)
 
 _impUnitEDI2SI = 4 * np.pi * 1e-4
 
+rxData = {}
 for i, key in enumerate(mtd.keys()):
     rx = mtd[key]
     freqs = rx.Z.frequency
@@ -52,7 +44,7 @@ for key in mtd.keys():
     rx_locs += [utm.from_latlon(mtd[key].latitude, mtd[key].longitude)[:2] + (mtd[key].elevation,)]
 
 rx_locs = np.array(rx_locs)
-rx_locs2d = rx_locs[:, 0::2]
+rx_locs2d = rx_locs[:, [1,2]]
 
 # only use freqs that each reciever has data for
 freqs2use = []
@@ -85,8 +77,8 @@ hy = [(dy, npad_y, -exp_y), (dy, ncy), (dy, npad_y, exp_y)]
 hx_cells = discretize.utils.unpack_widths(hx)
 hy_cells = discretize.utils.unpack_widths(hy)
 
-x_center = rx_locs[:, 0].mean()
-y_surface = rx_locs[:, 2].mean()          
+x_center = rx_locs2d[:, 0].mean()
+y_surface = rx_locs2d[:, 1].mean()          
 
 x0 = x_center - hx_cells.sum() / 2
 y0 = y_surface - (hy_cells.sum() / 2) - 100
@@ -94,11 +86,11 @@ mesh = discretize.TensorMesh([hx, hy], origin=[x0, y0])
 
 active_cells = discretize.utils.mesh_utils.active_from_xyz(mesh, rx_locs2d)
 
-print(f"Mesh has {mesh.n_cells} cells")
-fig = plt.figure(figsize=(5,5))
-ax = fig.add_subplot(111)
-mesh.plot_grid(ax=ax)
-ax.scatter(rx_locs[:,0], rx_locs[:, 2], color='orange', s=100, zorder=5)
+# print(f"Mesh has {mesh.n_cells} cells")
+# fig = plt.figure(figsize=(5,5))
+# ax = fig.add_subplot(111)
+# mesh.plot_grid(ax=ax)
+# ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
 plt.show()
 
 # ==================================================
@@ -143,9 +135,6 @@ for src in src_list_tm:
 
 data_vec_te = np.array(data_vec_te)
 data_vec_tm = np.array(data_vec_tm)
-        
-# data_vec_te = np.hstack(data_vec_te)
-# data_vec_tm = np.hstack(data_vec_tm)
 
 # ==================================================
 # Setup the SimPEG survey and simulation
@@ -188,10 +177,9 @@ sim_te = nsem.simulation.Simulation2DElectricField(
 print('[INFO] Getting things started on inversion...')
 
 floor = 0.05  # prevents over-weighting small values
-percent = 0.05
 
-data_obj_te.standard_deviation = np.abs(data_vec_te) * percent + floor
-data_obj_tm.standard_deviation = np.abs(data_vec_tm) * percent + floor
+data_obj_te.standard_deviation = np.abs(data_vec_te) * 0.05 + floor
+data_obj_tm.standard_deviation = np.abs(data_vec_tm) * 0.1 + floor
 
 dmisfit_tm = data_misfit.L2DataMisfit(data=data_obj_tm, simulation=sim_tm)
 dmisfit_te = data_misfit.L2DataMisfit(data=data_obj_te, simulation=sim_te)
@@ -232,8 +220,7 @@ inv_tetm = inversion.BaseInversion(invProb_tetm, directiveList=directiveList)
 opt_tetm.remember('xc')
 
 
-# Checks
-
+# Check forward simulation of halfspace model
 dpred_te = sim_te.dpred(m0)
 dpred_tm = sim_tm.dpred(m0)
 
@@ -253,26 +240,6 @@ plt.plot(ind, data_vec_te, 's-', label='TE Observed')
 plt.plot(ind, data_vec_tm, 's-', label='TM Observed')
 plt.legend()
 plt.show()
-
-print(f"TE pred range: {dpred_te.min():.3e} to {dpred_te.max():.3e}")
-print(f"TM pred range: {dpred_tm.min():.3e} to {dpred_tm.max():.3e}")
-print(f"TE obs range:  {data_vec_te.min():.3e} to {data_vec_te.max():.3e}")
-print(f"TM obs range:  {data_vec_tm.min():.3e} to {data_vec_tm.max():.3e}")
-print(f"Any NaNs: {np.isnan(dpred_te).any()}, {np.isnan(dpred_tm).any()}")
-
-stdev_te = 1.0 / dmisfit_te.W.diagonal()
-stdev_tm = 1.0 / dmisfit_tm.W.diagonal()
-
-print(f"stdev_te range: {stdev_te.min():.3e} to {stdev_te.max():.3e}")
-print(f"stdev_tm range: {stdev_tm.min():.3e} to {stdev_tm.max():.3e}")
-
-# Check noise floor relative to data
-snr_te = np.abs(data_vec_te) / stdev_te
-snr_tm = np.abs(data_vec_tm) / stdev_tm
-print(f"TE SNR range: {snr_te.min():.2f} to {snr_te.max():.2f}")
-print(f"TM SNR range: {snr_tm.min():.2f} to {snr_tm.max():.2f}")
-
-breakpoint()
 
 # ==================================================
 # Run the inversion and save the results
