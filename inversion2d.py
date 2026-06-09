@@ -9,14 +9,15 @@ import matplotlib.pyplot as plt
 import utm
 import mtpy as mt
 
-inversion_title = 'profileData/P01cf'
+data_dir = 'profileData/'
+inversion_title = 'P01cf'
 
 # ==================================================
 # Load data
 # ==================================================
 
 mtc = mt.MTCollection()
-mtc.open_collection(inversion_title)
+mtc.open_collection(data_dir + inversion_title)
 mtd = mtc.to_mt_data()
 mtc.close_collection()
 mtd.rotate(90)
@@ -53,8 +54,10 @@ for f in mtd.get_periods()**-1:
     for key in mtd.keys():
         if f in mtd[key].Z.frequency:
             freq_count += 1
-        if freq_count == mtd.n_stations and f < 1000:
+        if freq_count == mtd.n_stations and f > 5 and f < 1000:
             freqs2use.append(f)
+
+print(f"Using {len(freqs2use)} frequencies: {freqs2use}")
 
 
 # ==================================================
@@ -69,7 +72,7 @@ y_surface = rx_locs2d[:, 1].mean()
 x_width = rx_locs2d[:, 0].max() - rx_locs2d[:, 0].min()
 
 dx = 40 # base cell width
-ncx = int((x_width + 500) / dx) # number of core mesh cells
+ncx = int((x_width + 750) / dx) # number of core mesh cells
 npad_x = 20  # number of padding cells
 exp_x = 1.5 # expansion rate of padding cells
 
@@ -90,11 +93,11 @@ mesh = discretize.TensorMesh([hx, hy], origin=[x0, y0])
 active_cells = discretize.utils.mesh_utils.active_from_xyz(mesh, rx_locs2d)
 
 print(f"Mesh has {mesh.n_cells} cells")
-fig = plt.figure(figsize=(5,5))
-ax = fig.add_subplot(111)
-mesh.plot_grid(ax=ax)
-ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
-plt.show()
+# fig = plt.figure(figsize=(5,5))
+# ax = fig.add_subplot(111)
+# mesh.plot_grid(ax=ax)
+# ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
+# plt.show()
 
 # ==================================================
 # Setup SimPEG sources and rxs
@@ -127,6 +130,7 @@ data_vec_tm = []
 for src in src_list_te:
     for tf in mtd.keys():
         data_vec_te.append(rxData[tf][src.frequency][1, 0].real)
+        print(f"Added TE data for frequency {src.frequency} Hz from station {tf}")
     for tf in mtd.keys():
         data_vec_te.append(rxData[tf][src.frequency][1, 0].imag)
 
@@ -155,7 +159,7 @@ expmap = maps.ExpMap()
 
 
 
-m0 = (np.ones(mesh.nC) * np.log(1/1e3))[active_cells]
+m0 = (np.ones(mesh.nC) * np.log(1/1e4))[active_cells]
 mapping = expmap * actmap
 
 # create the simulation
@@ -180,9 +184,10 @@ sim_te = nsem.simulation.Simulation2DElectricField(
 print('[INFO] Getting things started on inversion...')
 
 floor = 0.05  # prevents over-weighting small values
+percent = 0.035
 
-data_obj_te.standard_deviation = np.abs(data_vec_te) * 0.05 + floor
-data_obj_tm.standard_deviation = np.abs(data_vec_tm) * 0.1 + floor
+data_obj_te.standard_deviation = np.abs(data_vec_te) * percent + floor
+data_obj_tm.standard_deviation = np.abs(data_vec_tm) * percent + floor
 
 dmisfit_tm = data_misfit.L2DataMisfit(data=data_obj_tm, simulation=sim_tm)
 dmisfit_te = data_misfit.L2DataMisfit(data=data_obj_te, simulation=sim_te)
@@ -200,9 +205,9 @@ reg_tetm = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg_tetm.alpha_s = 1e-8
-reg_tetm.alpha_x = 1
-reg_tetm.alpha_y = 1
+reg_tetm.alpha_s = 1
+reg_tetm.alpha_x = 0.1
+reg_tetm.alpha_y = 0.1
 
 opt_tetm = optimization.ProjectedGNCG(maxIter=20, upper=np.inf, lower=-np.inf)
 invProb_tetm = inverse_problem.BaseInvProblem(dmisfit_combo, reg_tetm, opt_tetm)

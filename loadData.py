@@ -6,8 +6,8 @@ from pathlib import Path
 
 directory_path = Path("./data_corrected")
 
-inversion_title = 'profileData/P01cf'
-stations2invert = np.append(np.arange(1130, 1140, 1), np.array([1338]))
+inversion_title = 'profileData/P02cf'
+stations2invert = np.arange(1140, 1151, 1)
 
 print(f"Stations to invert: {stations2invert}")
 
