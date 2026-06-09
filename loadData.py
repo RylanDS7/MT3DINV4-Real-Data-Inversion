@@ -1,13 +1,15 @@
 # code by Rylan Stutters - github.com/RylanDS7
 
 import mtpy as mt
+import numpy as np
 from pathlib import Path
 
 directory_path = Path("./data_corrected")
 
-inversion_title = 'P10cf'
-# stations2invert = [1216, 1227, 1238, 1249, 1260, 1271, 1282, 1293, 1301, 1312]
-stations2invert = [1232, 1233, 1234, 1235, 1236, 1237, 1238]
+inversion_title = 'profileData/P01cf'
+stations2invert = np.append(np.arange(1130, 1140, 1), np.array([1338]))
+
+print(f"Stations to invert: {stations2invert}")
 
 mtc = mt.MTCollection()
 mtc.open_collection(inversion_title)

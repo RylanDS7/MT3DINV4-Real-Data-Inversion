@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import utm
 import mtpy as mt
 
-inversion_title = 'P10cf'
+inversion_title = 'profileData/P01cf'
 
 # ==================================================
 # Load data
@@ -63,34 +63,37 @@ for f in mtd.get_periods()**-1:
 
 print("Building mesh")
 
-ncx = 150 # number of core mesh cells
+x_center = rx_locs2d[:, 0].mean()
+y_surface = rx_locs2d[:, 1].mean()  
+
+x_width = rx_locs2d[:, 0].max() - rx_locs2d[:, 0].min()
+
 dx = 40 # base cell width
+ncx = int((x_width + 500) / dx) # number of core mesh cells
 npad_x = 20  # number of padding cells
 exp_x = 1.5 # expansion rate of padding cells
-ncy = 75 # number of core mesh cells
+
 dy = 40 # base cell width
+ncy = 150 # number of core mesh cells
 npad_y = 20 # number of padding cells
 exp_y = 1.5 # expansion rate of padding cells
 
 hx = [(dx, npad_x, -exp_x), (dx, ncx), (dx, npad_x, exp_x)]
 hy = [(dy, npad_y, -exp_y), (dy, ncy), (dy, npad_y, exp_y)]
 hx_cells = discretize.utils.unpack_widths(hx)
-hy_cells = discretize.utils.unpack_widths(hy)
-
-x_center = rx_locs2d[:, 0].mean()
-y_surface = rx_locs2d[:, 1].mean()          
+hy_cells = discretize.utils.unpack_widths(hy)        
 
 x0 = x_center - hx_cells.sum() / 2
-y0 = y_surface - (hy_cells.sum() / 2) - 100
+y0 = y_surface - (hy_cells.sum() / 2) - (dy * ncy / 3)
 mesh = discretize.TensorMesh([hx, hy], origin=[x0, y0])
 
 active_cells = discretize.utils.mesh_utils.active_from_xyz(mesh, rx_locs2d)
 
-# print(f"Mesh has {mesh.n_cells} cells")
-# fig = plt.figure(figsize=(5,5))
-# ax = fig.add_subplot(111)
-# mesh.plot_grid(ax=ax)
-# ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
+print(f"Mesh has {mesh.n_cells} cells")
+fig = plt.figure(figsize=(5,5))
+ax = fig.add_subplot(111)
+mesh.plot_grid(ax=ax)
+ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
 plt.show()
 
 # ==================================================
@@ -249,11 +252,14 @@ minv_tetm = inv_tetm.run(m0)
 data_model = sim_te.dpred(minv_tetm)
 rho_est = actmap * minv_tetm
 
+save_mesh = mesh.serialize()
+
 np.savez(
-    "out/inversion_results.npz",
+    f"out/2dinversion_results_{inversion_title}.npz",
     model=minv_tetm,
     dpred=data_model,
     rho_est=rho_est,
     freqs=freqs2use,
-    rx_locs=rx_locs,
+    rx_locs2d=rx_locs2d,
+    mesh=save_mesh,
 )
