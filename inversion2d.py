@@ -51,6 +51,7 @@ for file_path in directory_path.iterdir():
 # Load into MTData
 mtd = MTData()
 mtd.add_station(mt_objects)
+# mtd.rotate(-90) #TODO Fix rotation in MTData
 print(f"Number of stations loaded: {mtd.n_stations}")
 
 mdf = mtd.to_dataframe()
@@ -60,19 +61,6 @@ for rx in stations2invert:
     sdf = mdf.loc[mdf['station'] == str(rx)]
     rxData[rx] = sdf
 
-
-# _impUnitEDI2SI = 4 * np.pi * 1e-4
-
-# rxData = {}
-# for i, key in enumerate(mtd.keys()):
-#     rx = mtd[key]
-#     freqs = rx.Z.frequency
-
-#     freqData = {}
-#     for ii, f in enumerate(freqs):
-#         freqData[f] = mtd[key].impedance[ii].values * _impUnitEDI2SI
-
-#     rxData[key] = freqData
 
 # ==================================================
 # Get locations and freqs
@@ -96,8 +84,6 @@ for p in mtd.get_periods():
             peri_count += 1
         if peri_count == mtd.n_stations and p**-1 > 5 and p**-1 < 1000:
             peris2use.append(p)
-
-print(f"Using {len(peris2use)} frequencies: {peris2use}")
 
 
 # ==================================================
@@ -180,7 +166,6 @@ for p in peris2use:
         data_vec_tm.append(freqData['z_xy'].values[0].imag * _impUnitEDI2SI)
         data_vec_te.append(freqData['z_yx'].values[0].imag * _impUnitEDI2SI)
     l = len(data_vec_te) - lo
-    print(f"Added {l} data points for period {p}")
 
 data_vec_te = np.array(data_vec_te)
 data_vec_tm = np.array(data_vec_tm)
@@ -306,7 +291,7 @@ np.savez(
     model=minv_tetm,
     dpred=data_model,
     rho_est=rho_est,
-    freqs=freqs2use,
+    freqs=peris2use,
     rx_locs2d=rx_locs2d,
     mesh=save_mesh,
 )
