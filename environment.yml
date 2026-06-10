@@ -1,6 +1,7 @@
 name: simpeg-mt-env
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - python=3.10
 
@@ -20,14 +21,14 @@ dependencies:
 
   # Utilities
   - utm
-
-  # Optional but useful
-  - jupyterlab
-  - ipython
+  - h5py
+  - pyproj
+  - geopy
+  - geopandas
 
   # Metadata handling
   - pip
   - pip:
-      - mtpy
       - mtpy-v2
       - mt-metadata
+      - mth5

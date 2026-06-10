@@ -1,13 +1,26 @@
 # code by Rylan Stutters - github.com/RylanDS7
 
-from simpeg import maps, utils, data, optimization, maps, regularization, inverse_problem, directives, inversion, data_misfit
+from simpeg import maps, data, optimization, maps, regularization, inverse_problem, directives, inversion, data_misfit
 import discretize
 import numpy as np
 from pymatsolver import Pardiso
 from simpeg.electromagnetics import natural_source as nsem
 import matplotlib.pyplot as plt
+from pathlib import Path
 import utm
-import mtpy as mt
+
+# fix ssl error on windows for mtpy
+import ssl
+_original = ssl.SSLContext.load_default_certs
+def _safe_load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
+    try:
+        _original(self, purpose)
+    except ssl.SSLError:
+        pass
+ssl.SSLContext.load_default_certs = _safe_load_default_certs
+
+from mtpy import MTData
+from mtpy.core.mt import MT
 
 data_dir = 'profileData/'
 inversion_title = 'P01cf'
@@ -15,25 +28,51 @@ inversion_title = 'P01cf'
 # ==================================================
 # Load data
 # ==================================================
+directory_path = Path("./data_corrected")
+stations2invert = np.arange(1140, 1151, 1)
 
-mtc = mt.MTCollection()
-mtc.open_collection(data_dir + inversion_title)
-mtd = mtc.to_mt_data()
-mtc.close_collection()
-mtd.rotate(90)
+print(f"Stations to invert: {stations2invert}")
 
-_impUnitEDI2SI = 4 * np.pi * 1e-4
+# Build list of MT objects for selected stations
+mt_objects = []
+for file_path in directory_path.iterdir():
+    if file_path.suffix.lower() != '.edi':
+        continue
+    station_num = int(file_path.stem[2:6])
+    if station_num in stations2invert:
+        mt_obj = MT()
+        mt_obj.read(file_path)
+        mt_obj.survey_metadata.id = 'survey'
+        mt_obj.station = f'{station_num}'
+        mt_obj.station_metadata.id = f'{station_num}'
+        mt_obj.tf_id = f'{station_num}'
+        mt_objects.append(mt_obj)
+
+# Load into MTData
+mtd = MTData()
+mtd.add_station(mt_objects)
+print(f"Number of stations loaded: {mtd.n_stations}")
+
+mdf = mtd.to_dataframe()
 
 rxData = {}
-for i, key in enumerate(mtd.keys()):
-    rx = mtd[key]
-    freqs = rx.Z.frequency
+for rx in stations2invert:
+    sdf = mdf.loc[mdf['station'] == str(rx)]
+    rxData[rx] = sdf
 
-    freqData = {}
-    for ii, f in enumerate(freqs):
-        freqData[f] = mtd[key].impedance[ii].values * _impUnitEDI2SI
 
-    rxData[key] = freqData
+# _impUnitEDI2SI = 4 * np.pi * 1e-4
+
+# rxData = {}
+# for i, key in enumerate(mtd.keys()):
+#     rx = mtd[key]
+#     freqs = rx.Z.frequency
+
+#     freqData = {}
+#     for ii, f in enumerate(freqs):
+#         freqData[f] = mtd[key].impedance[ii].values * _impUnitEDI2SI
+
+#     rxData[key] = freqData
 
 # ==================================================
 # Get locations and freqs
@@ -41,23 +80,24 @@ for i, key in enumerate(mtd.keys()):
 
 rx_locs = []
 
-for key in mtd.keys():
-    rx_locs += [utm.from_latlon(mtd[key].latitude, mtd[key].longitude)[:2] + (mtd[key].elevation,)]
+for rx in rxData.values():
+    east, north = utm.from_latlon(rx['latitude'].iloc[0], rx['longitude'].iloc[0])[:2]
+    rx_locs.append([east, north, rx['elevation'].iloc[0]])
 
 rx_locs = np.array(rx_locs)
 rx_locs2d = rx_locs[:, [1,2]]
 
 # only use freqs that each reciever has data for
-freqs2use = []
-for f in mtd.get_periods()**-1:
-    freq_count = 0
-    for key in mtd.keys():
-        if f in mtd[key].Z.frequency:
-            freq_count += 1
-        if freq_count == mtd.n_stations and f > 5 and f < 1000:
-            freqs2use.append(f)
+peris2use = []
+for p in mtd.get_periods():
+    peri_count = 0
+    for rx in rxData.values():
+        if p in rx['period'].values:
+            peri_count += 1
+        if peri_count == mtd.n_stations and p**-1 > 5 and p**-1 < 1000:
+            peris2use.append(p)
 
-print(f"Using {len(freqs2use)} frequencies: {freqs2use}")
+print(f"Using {len(peris2use)} frequencies: {peris2use}")
 
 
 # ==================================================
@@ -106,7 +146,7 @@ print(f"Mesh has {mesh.n_cells} cells")
 src_list_te = []
 src_list_tm = []
 
-for f in freqs2use:
+for p in peris2use:
     rx_list_te = [
         nsem.receivers.Impedance(rx_locs2d, orientation="xy", component="real"),
         nsem.receivers.Impedance(rx_locs2d, orientation="xy", component="imag"),
@@ -117,28 +157,30 @@ for f in freqs2use:
         nsem.receivers.Impedance(rx_locs2d, orientation="yx", component="imag"),
     ]
 
-    src_list_te.append(nsem.sources.Planewave(rx_list_te, frequency=f))
-    src_list_tm.append(nsem.sources.Planewave(rx_list_tm, frequency=f))
+    src_list_te.append(nsem.sources.Planewave(rx_list_te, frequency=p**-1))
+    src_list_tm.append(nsem.sources.Planewave(rx_list_tm, frequency=p**-1))
 
 # ==================================================
 # Setup data objects
 # ==================================================
 
+_impUnitEDI2SI = 4 * np.pi * 1e-4
+
 data_vec_te = []
 data_vec_tm = []
 
-for src in src_list_te:
-    for tf in mtd.keys():
-        data_vec_te.append(rxData[tf][src.frequency][1, 0].real)
-        print(f"Added TE data for frequency {src.frequency} Hz from station {tf}")
-    for tf in mtd.keys():
-        data_vec_te.append(rxData[tf][src.frequency][1, 0].imag)
-
-for src in src_list_tm:
-    for tf in mtd.keys():
-        data_vec_tm.append(rxData[tf][src.frequency][0, 1].real)
-    for tf in mtd.keys():
-        data_vec_tm.append(rxData[tf][src.frequency][0, 1].imag)
+for p in peris2use:
+    lo = len(data_vec_te)
+    for rx in rxData.values():
+        freqData = rx.loc[rx['period'] == p]
+        data_vec_tm.append(freqData['z_xy'].values[0].real * _impUnitEDI2SI)
+        data_vec_te.append(freqData['z_yx'].values[0].real * _impUnitEDI2SI) 
+    for rx in rxData.values():
+        freqData = rx.loc[rx['period'] == p]
+        data_vec_tm.append(freqData['z_xy'].values[0].imag * _impUnitEDI2SI)
+        data_vec_te.append(freqData['z_yx'].values[0].imag * _impUnitEDI2SI)
+    l = len(data_vec_te) - lo
+    print(f"Added {l} data points for period {p}")
 
 data_vec_te = np.array(data_vec_te)
 data_vec_tm = np.array(data_vec_tm)
@@ -183,7 +225,7 @@ sim_te = nsem.simulation.Simulation2DElectricField(
 
 print('[INFO] Getting things started on inversion...')
 
-floor = 0.05  # prevents over-weighting small values
+floor = 0.03
 percent = 0.035
 
 data_obj_te.standard_deviation = np.abs(data_vec_te) * percent + floor
@@ -205,9 +247,9 @@ reg_tetm = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg_tetm.alpha_s = 1
-reg_tetm.alpha_x = 0.1
-reg_tetm.alpha_y = 0.1
+reg_tetm.alpha_s = 0.01
+reg_tetm.alpha_x = 1
+reg_tetm.alpha_y = 1
 
 opt_tetm = optimization.ProjectedGNCG(maxIter=20, upper=np.inf, lower=-np.inf)
 invProb_tetm = inverse_problem.BaseInvProblem(dmisfit_combo, reg_tetm, opt_tetm)
