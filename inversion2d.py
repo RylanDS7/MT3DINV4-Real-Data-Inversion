@@ -30,6 +30,7 @@ inversion_title = 'P01cf'
 # ==================================================
 directory_path = Path("./data_corrected")
 stations2invert = np.arange(1140, 1151, 1)
+stations2invert = np.delete(stations2invert, 2) # this station has very bad data and is causing issues with the inversion
 
 print(f"Stations to invert: {stations2invert}")
 
@@ -51,7 +52,6 @@ for file_path in directory_path.iterdir():
 # Load into MTData
 mtd = MTData()
 mtd.add_station(mt_objects)
-# mtd.rotate(-90) #TODO Fix rotation in MTData
 print(f"Number of stations loaded: {mtd.n_stations}")
 
 mdf = mtd.to_dataframe()
@@ -156,16 +156,19 @@ data_vec_te = []
 data_vec_tm = []
 
 for p in peris2use:
-    lo = len(data_vec_te)
+    rxZ = []
     for rx in rxData.values():
         freqData = rx.loc[rx['period'] == p]
-        data_vec_tm.append(freqData['z_xy'].values[0].real * _impUnitEDI2SI)
-        data_vec_te.append(freqData['z_yx'].values[0].real * _impUnitEDI2SI) 
-    for rx in rxData.values():
-        freqData = rx.loc[rx['period'] == p]
-        data_vec_tm.append(freqData['z_xy'].values[0].imag * _impUnitEDI2SI)
-        data_vec_te.append(freqData['z_yx'].values[0].imag * _impUnitEDI2SI)
-    l = len(data_vec_te) - lo
+        Z = np.array([[freqData['z_xx'].values[0], freqData['z_xy'].values[0]], 
+                      [freqData['z_yx'].values[0], freqData['z_yy'].values[0]]]) * _impUnitEDI2SI
+        rxZ.append(Z)
+        Z = np.rot90(Z, k=-1)
+    for Z in rxZ:
+        data_vec_tm.append(Z[0, 1].real)
+        data_vec_te.append(Z[1, 0].real) 
+    for Z in rxZ:
+        data_vec_tm.append(Z[0, 1].imag)
+        data_vec_te.append(Z[1, 0].imag)
 
 data_vec_te = np.array(data_vec_te)
 data_vec_tm = np.array(data_vec_tm)
@@ -186,7 +189,7 @@ expmap = maps.ExpMap()
 
 
 
-m0 = (np.ones(mesh.nC) * np.log(1/1e4))[active_cells]
+m0 = (np.ones(mesh.nC) * np.log(1/1e3))[active_cells]
 mapping = expmap * actmap
 
 # create the simulation
@@ -232,9 +235,9 @@ reg_tetm = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg_tetm.alpha_s = 0.01
-reg_tetm.alpha_x = 1
-reg_tetm.alpha_y = 1
+reg_tetm.alpha_s = 1
+reg_tetm.alpha_x = 0.01
+reg_tetm.alpha_y = 0.01
 
 opt_tetm = optimization.ProjectedGNCG(maxIter=20, upper=np.inf, lower=-np.inf)
 invProb_tetm = inverse_problem.BaseInvProblem(dmisfit_combo, reg_tetm, opt_tetm)
@@ -291,7 +294,7 @@ np.savez(
     model=minv_tetm,
     dpred=data_model,
     rho_est=rho_est,
-    freqs=peris2use,
+    peris=peris2use,
     rx_locs2d=rx_locs2d,
     mesh=save_mesh,
 )

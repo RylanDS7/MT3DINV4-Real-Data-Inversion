@@ -8,7 +8,7 @@ with np.load('out/2dinversion_results_P01cf.npz', allow_pickle=True) as data:
     minv_tetm = data['model']
     data_model = data['dpred']
     rho_est = data['rho_est']
-    freqs2use = data['freqs']
+    peris2use = data['freqs']
     rx_locs2d = data['rx_locs2d']
     mesh = data['mesh'].item()
 
