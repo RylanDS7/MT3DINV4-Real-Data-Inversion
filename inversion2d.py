@@ -112,6 +112,8 @@ active_cells = discretize.utils.mesh_utils.active_from_xyz(mesh, rx_locs2d)
 print(f"Mesh has {mesh.n_cells} cells")
 fig = plt.figure(figsize=(5,5))
 ax = fig.add_subplot(111)
+ax.set_xlim(rx_locs2d[:, 0].min() - 500, rx_locs2d[:, 0].max() + 500)
+ax.set_ylim(y_surface - 1000, y_surface + 300)
 mesh.plot_grid(ax=ax)
 ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
 plt.show()
@@ -255,11 +257,6 @@ dpred_tm = sim_tm.dpred(m0)
 r_te = (data_vec_te - dpred_te) / data_obj_te.standard_deviation
 r_tm = (data_vec_tm - dpred_tm) / data_obj_tm.standard_deviation
 
-print(np.max(np.abs(r_te)))
-print(np.max(np.abs(r_tm)))
-print(np.median(np.abs(r_te)))
-print(np.median(np.abs(r_tm)))
-
 ind = np.arange(len(r_te))
 step = mtd.n_stations * 2
 for i in np.arange(step):
@@ -268,10 +265,10 @@ for i in np.arange(step):
     plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
     plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
     plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
-    if step % i < mtd.n_stations:
-        plt.title(f"Real Impedance, Frequency {peris2use[step % i]**-1}")
+    if step - i > mtd.n_stations:
+        plt.title(f"Real Impedance, Station {i}")
     else:
-        plt.title(f"Imag Impedance, Frequency {peris2use[step % i]**-1}")     
+        plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
     plt.legend()
     plt.show()
 
