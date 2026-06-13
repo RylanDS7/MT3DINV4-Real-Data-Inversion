@@ -25,6 +25,11 @@ dependencies:
   - pyproj
   - geopy
   - geopandas
+  - openssl=3.6.2
+
+  # Optional but useful
+  - jupyterlab
+  - ipython
 
   # Metadata handling
   - pip

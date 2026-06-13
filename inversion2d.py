@@ -1,6 +1,6 @@
 # code by Rylan Stutters - github.com/RylanDS7
 
-from simpeg import maps, data, optimization, maps, regularization, inverse_problem, directives, inversion, data_misfit
+from simpeg import maps, data, optimization, regularization, inverse_problem, directives, inversion, data_misfit
 import discretize
 import numpy as np
 from pymatsolver import Pardiso
@@ -8,17 +8,6 @@ from simpeg.electromagnetics import natural_source as nsem
 import matplotlib.pyplot as plt
 from pathlib import Path
 import utm
-
-# fix ssl error on windows for mtpy
-import ssl
-_original = ssl.SSLContext.load_default_certs
-def _safe_load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
-    try:
-        _original(self, purpose)
-    except ssl.SSLError:
-        pass
-ssl.SSLContext.load_default_certs = _safe_load_default_certs
-
 from mtpy import MTData
 from mtpy.core.mt import MT
 
@@ -30,7 +19,9 @@ inversion_title = 'P01cf'
 # ==================================================
 directory_path = Path("./data_corrected")
 stations2invert = np.arange(1140, 1151, 1)
-stations2invert = np.delete(stations2invert, 2) # this station has very bad data and is causing issues with the inversion
+stations2invert = np.delete(stations2invert, 10) # this station has very bad data and is causing issues with the inversion
+stations2invert = np.delete(stations2invert, 9)
+stations2invert = np.delete(stations2invert, 2)
 
 print(f"Stations to invert: {stations2invert}")
 
@@ -98,7 +89,7 @@ y_surface = rx_locs2d[:, 1].mean()
 x_width = rx_locs2d[:, 0].max() - rx_locs2d[:, 0].min()
 
 dx = 40 # base cell width
-ncx = int((x_width + 750) / dx) # number of core mesh cells
+ncx = int((x_width + 1000) / dx) # number of core mesh cells
 npad_x = 20  # number of padding cells
 exp_x = 1.5 # expansion rate of padding cells
 
@@ -108,22 +99,22 @@ npad_y = 20 # number of padding cells
 exp_y = 1.5 # expansion rate of padding cells
 
 hx = [(dx, npad_x, -exp_x), (dx, ncx), (dx, npad_x, exp_x)]
-hy = [(dy, npad_y, -exp_y), (dy, ncy), (dy, npad_y, exp_y)]
+hy = [(dy, npad_y, -exp_y), (dy, ncy)]
 hx_cells = discretize.utils.unpack_widths(hx)
 hy_cells = discretize.utils.unpack_widths(hy)        
 
 x0 = x_center - hx_cells.sum() / 2
-y0 = y_surface - (hy_cells.sum() / 2) - (dy * ncy / 3)
+y0 = y_surface - hy_cells.sum() + 200
 mesh = discretize.TensorMesh([hx, hy], origin=[x0, y0])
 
 active_cells = discretize.utils.mesh_utils.active_from_xyz(mesh, rx_locs2d)
 
 print(f"Mesh has {mesh.n_cells} cells")
-# fig = plt.figure(figsize=(5,5))
-# ax = fig.add_subplot(111)
-# mesh.plot_grid(ax=ax)
-# ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
-# plt.show()
+fig = plt.figure(figsize=(5,5))
+ax = fig.add_subplot(111)
+mesh.plot_grid(ax=ax)
+ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
+plt.show()
 
 # ==================================================
 # Setup SimPEG sources and rxs
@@ -162,7 +153,6 @@ for p in peris2use:
         Z = np.array([[freqData['z_xx'].values[0], freqData['z_xy'].values[0]], 
                       [freqData['z_yx'].values[0], freqData['z_yy'].values[0]]]) * _impUnitEDI2SI
         rxZ.append(Z)
-        Z = np.rot90(Z, k=-1)
     for Z in rxZ:
         data_vec_tm.append(Z[0, 1].real)
         data_vec_te.append(Z[1, 0].real) 
@@ -189,7 +179,7 @@ expmap = maps.ExpMap()
 
 
 
-m0 = (np.ones(mesh.nC) * np.log(1/1e3))[active_cells]
+m0 = (np.ones(mesh.nC) * np.log(1/680))[active_cells]
 mapping = expmap * actmap
 
 # create the simulation
@@ -211,10 +201,10 @@ sim_te = nsem.simulation.Simulation2DElectricField(
 # Create the data misfits
 # ==================================================
 
-print('[INFO] Getting things started on inversion...')
+print('Getting things started on inversion...')
 
 floor = 0.03
-percent = 0.035
+percent = 0.05
 
 data_obj_te.standard_deviation = np.abs(data_vec_te) * percent + floor
 data_obj_tm.standard_deviation = np.abs(data_vec_tm) * percent + floor
@@ -271,13 +261,19 @@ print(np.median(np.abs(r_te)))
 print(np.median(np.abs(r_tm)))
 
 ind = np.arange(len(r_te))
-plt.figure()
-plt.plot(ind, dpred_te, 'x-', label='TE Predicted')
-plt.plot(ind, dpred_tm, 'x-', label='TM Predicted')
-plt.plot(ind, data_vec_te, 's-', label='TE Observed')
-plt.plot(ind, data_vec_tm, 's-', label='TM Observed')
-plt.legend()
-plt.show()
+step = mtd.n_stations * 2
+for i in np.arange(step):
+    plt.figure()
+    plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
+    plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
+    plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
+    plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
+    if step % i < mtd.n_stations:
+        plt.title(f"Real Impedance, Frequency {peris2use[step % i]**-1}")
+    else:
+        plt.title(f"Imag Impedance, Frequency {peris2use[step % i]**-1}")     
+    plt.legend()
+    plt.show()
 
 # ==================================================
 # Run the inversion and save the results
