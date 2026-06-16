@@ -1,6 +1,6 @@
 # code by Rylan Stutters - github.com/RylanDS7
 
-from simpeg import maps, data, optimization, regularization, inverse_problem, directives, inversion, data_misfit
+from simpeg import maps, data, optimization, regularization, inverse_problem, directives, inversion, data_misfit, utils
 import discretize
 import numpy as np
 from pymatsolver import Pardiso
@@ -18,10 +18,7 @@ inversion_title = 'P01cf'
 # Load data
 # ==================================================
 directory_path = Path("./data_corrected")
-stations2invert = np.arange(1140, 1151, 1)
-stations2invert = np.delete(stations2invert, 10) # this station has very bad data and is causing issues with the inversion
-stations2invert = np.delete(stations2invert, 9)
-stations2invert = np.delete(stations2invert, 2)
+stations2invert = np.arange(1145, 1151, 1)
 
 print(f"Stations to invert: {stations2invert}")
 
@@ -58,10 +55,14 @@ for rx in stations2invert:
 # ==================================================
 
 rx_locs = []
+elevations = []
+
+for rx in rxData.values():
+    elevations.append(rx['elevation'].iloc[0])
 
 for rx in rxData.values():
     east, north = utm.from_latlon(rx['latitude'].iloc[0], rx['longitude'].iloc[0])[:2]
-    rx_locs.append([east, north, rx['elevation'].iloc[0]])
+    rx_locs.append([east, north, np.mean(elevations)])
 
 rx_locs = np.array(rx_locs)
 rx_locs2d = rx_locs[:, [1,2]]
@@ -109,14 +110,17 @@ mesh = discretize.TensorMesh([hx, hy], origin=[x0, y0])
 
 active_cells = discretize.utils.mesh_utils.active_from_xyz(mesh, rx_locs2d)
 
+# drape rxs to mesh surface
+rx_locs2d = utils.shift_to_discrete_topography(mesh, rx_locs2d, active_cells)
+
 print(f"Mesh has {mesh.n_cells} cells")
-fig = plt.figure(figsize=(5,5))
-ax = fig.add_subplot(111)
-ax.set_xlim(rx_locs2d[:, 0].min() - 500, rx_locs2d[:, 0].max() + 500)
-ax.set_ylim(y_surface - 1000, y_surface + 300)
-mesh.plot_grid(ax=ax)
-ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
-plt.show()
+# fig = plt.figure(figsize=(5,5))
+# ax = fig.add_subplot(111)
+# ax.set_xlim(rx_locs2d[:, 0].min() - 500, rx_locs2d[:, 0].max() + 500)
+# ax.set_ylim(y_surface - 1000, y_surface + 300)
+# mesh.plot_grid(ax=ax)
+# ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
+# plt.show()
 
 # ==================================================
 # Setup SimPEG sources and rxs
@@ -175,14 +179,25 @@ survey_tm = nsem.Survey(src_list_tm)
 data_obj_tm = data.Data(survey_tm, data_vec_tm)
 
 actmap = maps.InjectActiveCells(
-    mesh, indActive=active_cells, valInactive=np.log(1e-8)
+    mesh, active_cells=active_cells, value_inactive=np.log(1e-8)
 )
 expmap = maps.ExpMap()
 
-
-
 m0 = (np.ones(mesh.nC) * np.log(1/680))[active_cells]
 mapping = expmap * actmap
+
+model = np.ones(mesh.nC) * 1e-8
+model[active_cells] = 1/680
+
+fig = plt.figure(figsize=(5,5))
+ax = fig.add_subplot(111)
+mesh_plot = mesh.plot_image(model, ax=ax, grid=True, cmap='viridis', 
+                            range_x=(rx_locs2d[:, 0].min() - 500, rx_locs2d[:, 0].max() + 500),
+                            range_y=(y_surface - 1000, y_surface + 300))
+cb = plt.colorbar(mesh_plot[0], ax=ax, orientation='vertical')
+cb.set_label('Conductivity (S/m)')
+ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
+plt.show()
 
 # create the simulation
 sim_tm = nsem.simulation.Simulation2DMagneticField(
@@ -228,8 +243,8 @@ reg_tetm = regularization.WeightedLeastSquares(
 
 # set alpha length scales
 reg_tetm.alpha_s = 1
-reg_tetm.alpha_x = 0.01
-reg_tetm.alpha_y = 0.01
+reg_tetm.alpha_x = 1
+reg_tetm.alpha_y = 1
 
 opt_tetm = optimization.ProjectedGNCG(maxIter=20, upper=np.inf, lower=-np.inf)
 invProb_tetm = inverse_problem.BaseInvProblem(dmisfit_combo, reg_tetm, opt_tetm)
@@ -243,8 +258,9 @@ beta = directives.BetaSchedule(
 )
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
 target = directives.TargetMisfit()
+save_model = directives.SaveOutputDictEveryIteration(on_disk=True, directory=f".\out\{inversion_title}_models")
 
-directiveList = [betaest, beta, target]
+directiveList = [betaest, beta, target, save_model]
 
 inv_tetm = inversion.BaseInversion(invProb_tetm, directiveList=directiveList)
 opt_tetm.remember('xc')
@@ -253,6 +269,9 @@ opt_tetm.remember('xc')
 # Check forward simulation of halfspace model
 dpred_te = sim_te.dpred(m0)
 dpred_tm = sim_tm.dpred(m0)
+
+np.save("out/data_te.npy", data_vec_te)
+np.save("out/data_tm.npy", data_vec_tm)
 
 r_te = (data_vec_te - dpred_te) / data_obj_te.standard_deviation
 r_tm = (data_vec_tm - dpred_tm) / data_obj_tm.standard_deviation

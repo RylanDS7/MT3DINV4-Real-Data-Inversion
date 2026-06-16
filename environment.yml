@@ -1,9 +1,8 @@
-name: simpeg-mt-env
+name: simpeg-mt
 channels:
   - conda-forge
-  - defaults
 dependencies:
-  - python=3.10
+  - python=3.11
 
   # Core scientific stack
   - numpy

@@ -47,3 +47,10 @@ plt.xlabel('Northing (m)', fontsize=14)
 plt.ylabel('Elevation (m)', fontsize=14)
 
 plt.savefig('figures/2dinversion_results_P01cf.png', dpi=300)
+
+
+ind = np.arange(6 * len(peris2use) * 2)
+fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+
+plt.plot(ind, data_model)
+plt.show()
