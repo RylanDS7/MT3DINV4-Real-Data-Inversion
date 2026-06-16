@@ -189,11 +189,13 @@ actmap = maps.InjectActiveCells(
 )
 expmap = maps.ExpMap()
 
-m0 = (np.ones(mesh.nC) * np.log(1/680))[active_cells]
+sigma_background = 1/3000
+
+m0 = (np.ones(mesh.nC) * np.log(sigma_background))[active_cells]
 mapping = expmap * actmap
 
 model = np.ones(mesh.nC) * 1e-8
-model[active_cells] = 1/680
+model[active_cells] = sigma_background
 
 fig = plt.figure(figsize=(5,5))
 ax = fig.add_subplot(111)
