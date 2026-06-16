@@ -152,12 +152,18 @@ _impUnitEDI2SI = 4 * np.pi * 1e-4
 data_vec_te = []
 data_vec_tm = []
 
+def create_rotation_matrix(angle_degrees):
+    theta = np.radians(angle_degrees)
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array(((c, -s), (s, c)))
+
 for p in peris2use:
     rxZ = []
     for rx in rxData.values():
         freqData = rx.loc[rx['period'] == p]
         Z = np.array([[freqData['z_xx'].values[0], freqData['z_xy'].values[0]], 
                       [freqData['z_yx'].values[0], freqData['z_yy'].values[0]]]) * _impUnitEDI2SI
+        Z = create_rotation_matrix(90) @ Z @ create_rotation_matrix(-90)
         rxZ.append(Z)
     for Z in rxZ:
         data_vec_tm.append(Z[0, 1].real)
@@ -242,7 +248,7 @@ reg_tetm = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg_tetm.alpha_s = 1
+reg_tetm.alpha_s = 1e-4
 reg_tetm.alpha_x = 1
 reg_tetm.alpha_y = 1
 
