@@ -74,7 +74,7 @@ for p in mtd.get_periods():
     for rx in rxData.values():
         if p in rx['period'].values:
             peri_count += 1
-        if peri_count == mtd.n_stations and p**-1 > 5 and p**-1 < 1000:
+        if peri_count == mtd.n_stations and p**-1 > 5 and p**-1 < 500:
             peris2use.append(p)
 
 
@@ -305,7 +305,7 @@ for i in np.arange(step):
 
 minv_tetm = inv_tetm.run(m0)
 data_model = sim_te.dpred(minv_tetm)
-rho_est = actmap * minv_tetm
+sigma_est = actmap * minv_tetm
 
 save_mesh = mesh.serialize()
 
@@ -313,7 +313,7 @@ np.savez(
     f"out/2dinversion_results_{inversion_title}.npz",
     model=minv_tetm,
     dpred=data_model,
-    rho_est=rho_est,
+    sigma_est=sigma_est,
     peris=peris2use,
     rx_locs2d=rx_locs2d,
     mesh=save_mesh,
