@@ -18,7 +18,9 @@ inversion_title = 'P01cf'
 # Load data
 # ==================================================
 directory_path = Path("./data_corrected")
-stations2invert = np.arange(1145, 1151, 1)
+stations2invert = np.arange(1140, 1151, 1)
+stations2invert = np.delete(stations2invert, 3)
+stations2invert = np.delete(stations2invert, 2)
 
 print(f"Stations to invert: {stations2invert}")
 
@@ -197,15 +199,15 @@ mapping = expmap * actmap
 model = np.ones(mesh.nC) * 1e-8
 model[active_cells] = sigma_background
 
-fig = plt.figure(figsize=(5,5))
-ax = fig.add_subplot(111)
-mesh_plot = mesh.plot_image(model, ax=ax, grid=True, cmap='viridis', 
-                            range_x=(rx_locs2d[:, 0].min() - 500, rx_locs2d[:, 0].max() + 500),
-                            range_y=(y_surface - 1000, y_surface + 300))
-cb = plt.colorbar(mesh_plot[0], ax=ax, orientation='vertical')
-cb.set_label('Conductivity (S/m)')
-ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
-plt.show()
+# fig = plt.figure(figsize=(5,5))
+# ax = fig.add_subplot(111)
+# mesh_plot = mesh.plot_image(model, ax=ax, grid=True, cmap='viridis', 
+#                             range_x=(rx_locs2d[:, 0].min() - 500, rx_locs2d[:, 0].max() + 500),
+#                             range_y=(y_surface - 1000, y_surface + 300))
+# cb = plt.colorbar(mesh_plot[0], ax=ax, orientation='vertical')
+# cb.set_label('Conductivity (S/m)')
+# ax.scatter(rx_locs2d[:,0], rx_locs2d[:, 1], color='orange', s=100, zorder=5)
+# plt.show()
 
 # create the simulation
 sim_tm = nsem.simulation.Simulation2DMagneticField(
@@ -250,7 +252,7 @@ reg_tetm = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg_tetm.alpha_s = 1e-4
+reg_tetm.alpha_s = 1e-5
 reg_tetm.alpha_x = 1
 reg_tetm.alpha_y = 1
 
@@ -275,29 +277,26 @@ opt_tetm.remember('xc')
 
 
 # Check forward simulation of halfspace model
-dpred_te = sim_te.dpred(m0)
-dpred_tm = sim_tm.dpred(m0)
+# dpred_te = sim_te.dpred(m0)
+# dpred_tm = sim_tm.dpred(m0)
 
-np.save("out/data_te.npy", data_vec_te)
-np.save("out/data_tm.npy", data_vec_tm)
+# np.save("out/data_te.npy", data_vec_te)
+# np.save("out/data_tm.npy", data_vec_tm)
 
-r_te = (data_vec_te - dpred_te) / data_obj_te.standard_deviation
-r_tm = (data_vec_tm - dpred_tm) / data_obj_tm.standard_deviation
-
-ind = np.arange(len(r_te))
-step = mtd.n_stations * 2
-for i in np.arange(step):
-    plt.figure()
-    plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
-    plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
-    plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
-    plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
-    if step - i > mtd.n_stations:
-        plt.title(f"Real Impedance, Station {i}")
-    else:
-        plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
-    plt.legend()
-    plt.show()
+# ind = np.arange(len(dpred_te))
+# step = mtd.n_stations * 2
+# for i in np.arange(step):
+#     plt.figure()
+#     plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
+#     plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
+#     plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
+#     plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
+#     if step - i > mtd.n_stations:
+#         plt.title(f"Real Impedance, Station {i}")
+#     else:
+#         plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
+#     plt.legend()
+#     plt.show()
 
 # ==================================================
 # Run the inversion and save the results

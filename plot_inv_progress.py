@@ -85,9 +85,10 @@ for file in data_path.iterdir():
     dpred_te = dpred[:l]
     dpred_tm = dpred[l:]
     ind = np.arange(l)
-    step = 6 * 2
+    num_stations = len(rx_locs2d)
+    step = num_stations * 2
 
-    fig, axes = plt.subplots(3, 4, figsize=(20, 12))
+    fig, axes = plt.subplots(3, int(np.ceil(step / 3)), figsize=(20, 12))
     axes = axes.flatten()
 
     for i in range(step):
@@ -97,10 +98,10 @@ for file in data_path.iterdir():
         ax.plot(ind[i::step], data_vec_te[i::step], 'o-', label='TE Observed')
         ax.plot(ind[i::step], data_vec_tm[i::step], 'o-', label='TM Observed')
 
-        if step - i > 6:
+        if step - i > num_stations:
             ax.set_title(f"Real Impedance, Station {i}")
         else:
-            ax.set_title(f"Imag Impedance, Station {i - 6}")
+            ax.set_title(f"Imag Impedance, Station {i - num_stations}")
 
         ax.legend(fontsize=7)
 
