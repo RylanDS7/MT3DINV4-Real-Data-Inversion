@@ -5,7 +5,7 @@ import discretize
 import matplotlib.pyplot as plt
 from simpeg import utils
 
-with np.load('out/1dinversion_results_1140.npz', allow_pickle=True) as data:
+with np.load('out/1dinversion_results_1145.npz', allow_pickle=True) as data:
     minv = data['model']
     data_model = data['dpred']
     peris2use = data['peris']
