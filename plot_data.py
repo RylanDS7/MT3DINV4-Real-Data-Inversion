@@ -5,7 +5,9 @@ import discretize
 import matplotlib.pyplot as plt
 import copy
 
-with np.load('out/2dinversion_results_P01cf.npz', allow_pickle=True) as data:
+inversion_title = 'P03cf'
+
+with np.load(f'out/2dinversion_results_{inversion_title}.npz', allow_pickle=True) as data:
     minv_tetm = data['model']
     data_model = data['dpred']
     sigma_est = data['sigma_est']
@@ -50,4 +52,4 @@ plt.title('2D Inversion Results - P01cf', fontsize=16)
 plt.xlabel('Northing (m)', fontsize=14)
 plt.ylabel('Elevation (m)', fontsize=14)
 
-plt.savefig('figures/2dinversion_results_P01cf.png', dpi=300)
+plt.savefig(f'figures/2dinversion_results_{inversion_title}.png', dpi=300)

@@ -11,16 +11,15 @@ import utm
 from mtpy import MTData
 from mtpy.core.mt import MT
 
-data_dir = 'profileData/'
-inversion_title = 'P01cf'
+inversion_title = 'P03cf'
+stations2invert = np.arange(1151, 1162, 1)
 
 # ==================================================
 # Load data
 # ==================================================
+
+data_dir = 'profileData/'
 directory_path = Path("./data_corrected")
-stations2invert = np.arange(1140, 1151, 1)
-stations2invert = np.delete(stations2invert, 3)
-stations2invert = np.delete(stations2invert, 2)
 
 print(f"Stations to invert: {stations2invert}")
 
@@ -191,7 +190,7 @@ actmap = maps.InjectActiveCells(
 )
 expmap = maps.ExpMap()
 
-sigma_background = 1/3000
+sigma_background = 1/500
 
 m0 = (np.ones(mesh.nC) * np.log(sigma_background))[active_cells]
 mapping = expmap * actmap
@@ -268,35 +267,35 @@ beta = directives.BetaSchedule(
 )
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
 target = directives.TargetMisfit()
-save_model = directives.SaveOutputDictEveryIteration(on_disk=True, directory=f".\out\{inversion_title}_models")
+# save_model = directives.SaveOutputDictEveryIteration(on_disk=True, directory=f".\out\{inversion_title}_models")
 
-directiveList = [betaest, beta, target, save_model]
+directiveList = [betaest, beta, target]
 
 inv_tetm = inversion.BaseInversion(invProb_tetm, directiveList=directiveList)
 opt_tetm.remember('xc')
 
 
 # Check forward simulation of halfspace model
-# dpred_te = sim_te.dpred(m0)
-# dpred_tm = sim_tm.dpred(m0)
+dpred_te = sim_te.dpred(m0)
+dpred_tm = sim_tm.dpred(m0)
 
-# np.save("out/data_te.npy", data_vec_te)
-# np.save("out/data_tm.npy", data_vec_tm)
+np.save("out/data_te.npy", data_vec_te)
+np.save("out/data_tm.npy", data_vec_tm)
 
-# ind = np.arange(len(dpred_te))
-# step = mtd.n_stations * 2
-# for i in np.arange(step):
-#     plt.figure()
-#     plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
-#     plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
-#     plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
-#     plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
-#     if step - i > mtd.n_stations:
-#         plt.title(f"Real Impedance, Station {i}")
-#     else:
-#         plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
-#     plt.legend()
-#     plt.show()
+ind = np.arange(len(dpred_te))
+step = mtd.n_stations * 2
+for i in np.arange(step):
+    plt.figure()
+    plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
+    plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
+    plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
+    plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
+    if step - i > mtd.n_stations:
+        plt.title(f"Real Impedance, Station {i}")
+    else:
+        plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
+    plt.legend()
+    plt.show()
 
 # ==================================================
 # Run the inversion and save the results
