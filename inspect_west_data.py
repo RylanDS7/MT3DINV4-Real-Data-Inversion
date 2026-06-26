@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 from pathlib import Path
 from mtpy import MTData
 from mtpy.core.mt import MT
@@ -71,7 +72,7 @@ for key in mtd.station_paths:
 
     ax.scatter(freq, id, c='blue', s=1.5)
 
-freqs2use = [8.0566, 12.452, 23.439, 52.748, 99.634, 433.64, 984.4099999999999]
+freqs2use = [8.0566, 23.439, 52.748, 99.634, 433.64, 984.4099999999999]
 
 for freq in freqs2use:
     ax.axvline(x=freq, color='b', linestyle='--', linewidth=1)
@@ -82,4 +83,70 @@ ax.set_ylabel('Station ID')
 ax.set_yticks(stations2invert)
 ax.set_title('Station Available Frequencies')
 plt.savefig(f'{fig_dir}freq_plot.png')
-plt.show()
+
+
+# ==================================================
+# Adjust Freqencies to align
+# ==================================================
+
+fig, ax = plt.subplots(figsize=(18, 14))
+
+inversion_freq = set()
+
+for key in mtd.station_paths:
+    station = mtd.get_station(key)
+    freq = 1 / station.period.to_numpy()
+
+    plot_freq = []
+    for f in freq:
+        if any(abs(freqs2use - f) < 0.01 * f):
+            plot_freq.append(f)
+            inversion_freq.add(f)
+
+    try:
+        assert(len(plot_freq) == len(freqs2use))
+    except:
+        print(f"Station {station} missing {len(freqs2use) - len(plot_freq)} frequencies")
+
+    id = np.ones(len(plot_freq)) * int(station.station)
+
+    ax.scatter(plot_freq, id, c='blue', s=1.5)
+
+for freq in freqs2use:
+    ax.axvline(x=freq, color='b', linestyle='--', linewidth=1)
+
+ax.set_xscale('log')
+ax.set_xlabel('Frequency (Hz)')
+ax.set_ylabel('Station ID')
+ax.set_yticks(stations2invert)
+ax.set_title('Station Frequencies to Invert')
+plt.savefig(f'{fig_dir}freq2use_plot.png')
+
+
+# ==================================================
+# Plot Phase Tensor Maps for inversion freqs
+# ==================================================
+
+with PdfPages(f"{fig_dir}phase_tensor_maps.pdf") as pdf:
+    for f in freqs2use:
+        try:
+            ptm = mtd.plot_phase_tensor_map(plot_period=1/f, ellipse_size=0.001, arrow_size=0.001, fig_size=(18,14))
+            pdf.savefig(ptm.fig)
+            plt.close(ptm.fig)
+        except Exception as e:
+            print(f"Skipping freq {f}: {e}")
+
+
+
+# ==================================================
+# Plot Resistivity and Phase Maps for inversion freqs
+# ==================================================
+
+with PdfPages(f"{fig_dir}phase_resistivity_maps.pdf") as pdf:
+    for f in freqs2use:
+        try:
+            prm = mtd.plot_resistivity_phase_maps(plot_period=1/f, plot_xx=True, plot_yy=True, plot_det=False, fig_size=(18,14))
+            pdf.savefig(prm.fig)
+            plt.close(prm.fig)
+        except Exception as e:
+            print(f"Skipping freq {f}: {e}")
