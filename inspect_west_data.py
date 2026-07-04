@@ -124,6 +124,66 @@ plt.savefig(f'{fig_dir}freq2use_plot.png')
 
 
 # ==================================================
+# Plot Impedance Components
+# ==================================================
+
+_impUnitEDI2SI = 4 * np.pi * 1e-4
+
+mdf = mtd.to_dataframe()
+
+rxData = {}
+for rx in stations2invert:
+    sdf = mdf.loc[mdf['station'] == str(rx)]
+    rxData[rx] = sdf
+
+with PdfPages(f"{fig_dir}impedances2invert.pdf") as pdf:
+    for key in rxData.keys():
+        rx = rxData[key]
+        periods = rx['period'].unique()
+        Z_arr = []
+        for p in periods:
+            freqData = rx.loc[rx['period'] == p]
+            Z = np.array([[freqData['z_xx'].values[0], freqData['z_xy'].values[0]], 
+                        [freqData['z_yx'].values[0], freqData['z_yy'].values[0]]]) * _impUnitEDI2SI
+            Z_arr.append(Z)
+
+        Z_arr = np.array(Z_arr)
+
+        fig, axes = plt.subplots(2, 2, figsize=(18,14))
+        axes = axes.flatten()
+
+        axes[0].scatter(periods**-1, Z_arr[:, 0, 0], s=3)
+        axes[0].set_xscale('log')
+        axes[0].set_xlabel("Frequency")
+        axes[0].set_title("Z_xx")
+
+        axes[1].scatter(periods**-1, Z_arr[:, 0, 1], s=3)
+        axes[1].set_xscale('log')
+        axes[1].set_xlabel("Frequency")
+        axes[1].set_title("Z_xy")
+
+        axes[2].scatter(periods**-1, Z_arr[:, 1, 0], s=3)
+        axes[2].set_xscale('log')
+        axes[2].set_xlabel("Frequency")
+        axes[2].set_title("Z_yx")
+
+        axes[3].scatter(periods**-1, Z_arr[:, 1, 1], s=3)
+        axes[3].set_xscale('log')
+        axes[3].set_xlabel("Frequency")
+        axes[3].set_title("Z_yy")
+
+        for ax in axes:
+            for freq in freqs2use:
+                ax.axvline(x=freq, color='b', linestyle='--', linewidth=1)
+
+        fig.suptitle(f"MT Response Rx {key}")
+
+        pdf.savefig(fig)
+        plt.close()
+
+
+
+# ==================================================
 # Plot Phase Tensor Maps for inversion freqs
 # ==================================================
 
@@ -150,3 +210,9 @@ with PdfPages(f"{fig_dir}phase_resistivity_maps.pdf") as pdf:
             plt.close(prm.fig)
         except Exception as e:
             print(f"Skipping freq {f}: {e}")
+
+
+
+        
+
+        
