@@ -5,7 +5,7 @@ import discretize
 import matplotlib.pyplot as plt
 import copy
 
-inversion_title = 'P03cf'
+inversion_title = 'P02cf'
 
 with np.load(f'out/2dinversion_results_{inversion_title}.npz', allow_pickle=True) as data:
     minv_tetm = data['model']
@@ -48,7 +48,7 @@ plt.colorbar(
     extend='max'
 ).ax.tick_params(labelsize=14)
 
-plt.title('2D Inversion Results - P01cf', fontsize=16)
+plt.title(f'2D Inversion Results - {inversion_title}', fontsize=16)
 plt.xlabel('Northing (m)', fontsize=14)
 plt.ylabel('Elevation (m)', fontsize=14)
 
