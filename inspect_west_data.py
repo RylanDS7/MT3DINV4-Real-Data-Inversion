@@ -72,7 +72,7 @@ for key in mtd.station_paths:
 
     ax.scatter(freq, id, c='blue', s=1.5)
 
-freqs2use = [8.0566, 23.439, 52.748, 99.634, 433.64, 984.4099999999999]
+freqs2use = [8.0566, 23.439, 52.748, 99.634, 234.4, 433.64, 984.4099999999999]
 
 for freq in freqs2use:
     ax.axvline(x=freq, color='b', linestyle='--', linewidth=1)
