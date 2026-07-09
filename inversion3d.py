@@ -132,38 +132,38 @@ x_ind = np.argmin(np.abs(mesh.cell_centers_x - x_center))
 y_ind = np.argmin(np.abs(mesh.cell_centers_y - y_center))
 z_ind = np.argmin(np.abs(mesh.cell_centers_z - z_target))
 
-fig, ax = plt.subplots(1, 3, figsize=(18, 5))
+# fig, ax = plt.subplots(1, 3, figsize=(18, 5))
 
-# --- X-slice (Y-Z plane) ---
-mesh.plot_slice(active_cells, normal="X", ind=x_ind, ax=ax[0], grid=True,
-                 pcolor_opts={"cmap": "Greys", "alpha": 0.3})
-ax[0].scatter(rx_locs[:, 1], rx_locs[:, 2], c="red", s=15, zorder=5, label="Rx")
-ax[0].set_xlim(core_ymin, core_ymax)
-ax[0].set_ylim(core_zmin, core_zmax)
-ax[0].set_title("X-slice (Y-Z, core zoom)")
-ax[0].legend()
+# # --- X-slice (Y-Z plane) ---
+# mesh.plot_slice(active_cells, normal="X", ind=x_ind, ax=ax[0], grid=True,
+#                  pcolor_opts={"cmap": "Greys", "alpha": 0.3})
+# ax[0].scatter(rx_locs[:, 1], rx_locs[:, 2], c="red", s=15, zorder=5, label="Rx")
+# ax[0].set_xlim(core_ymin, core_ymax)
+# ax[0].set_ylim(core_zmin, core_zmax)
+# ax[0].set_title("X-slice (Y-Z, core zoom)")
+# ax[0].legend()
 
-# --- Y-slice (X-Z plane) ---
-mesh.plot_slice(active_cells, normal="Y", ind=y_ind, ax=ax[1], grid=True,
-                 pcolor_opts={"cmap": "Greys", "alpha": 0.3})
-ax[1].scatter(rx_locs[:, 0], rx_locs[:, 2], c="red", s=15, zorder=5, label="Rx")
-ax[1].set_xlim(core_xmin, core_xmax)
-ax[1].set_ylim(core_zmin, core_zmax)
-ax[1].set_title("Y-slice (X-Z, core zoom)")
-ax[1].legend()
+# # --- Y-slice (X-Z plane) ---
+# mesh.plot_slice(active_cells, normal="Y", ind=y_ind, ax=ax[1], grid=True,
+#                  pcolor_opts={"cmap": "Greys", "alpha": 0.3})
+# ax[1].scatter(rx_locs[:, 0], rx_locs[:, 2], c="red", s=15, zorder=5, label="Rx")
+# ax[1].set_xlim(core_xmin, core_xmax)
+# ax[1].set_ylim(core_zmin, core_zmax)
+# ax[1].set_title("Y-slice (X-Z, core zoom)")
+# ax[1].legend()
 
-# --- Z-slice (X-Y plane) ---
-mesh.plot_slice(active_cells, normal="Z", ind=z_ind, ax=ax[2], grid=True,
-                 pcolor_opts={"cmap": "Greys", "alpha": 0.3})
-ax[2].scatter(rx_locs[:, 0], rx_locs[:, 1], c="red", s=15, zorder=5, label="Rx")
-ax[2].set_xlim(core_xmin, core_xmax)
-ax[2].set_ylim(core_ymin, core_ymax)
-ax[2].set_title("Z-slice (X-Y, core zoom)")
-ax[2].set_aspect("equal")
-ax[2].legend()
+# # --- Z-slice (X-Y plane) ---
+# mesh.plot_slice(active_cells, normal="Z", ind=z_ind, ax=ax[2], grid=True,
+#                  pcolor_opts={"cmap": "Greys", "alpha": 0.3})
+# ax[2].scatter(rx_locs[:, 0], rx_locs[:, 1], c="red", s=15, zorder=5, label="Rx")
+# ax[2].set_xlim(core_xmin, core_xmax)
+# ax[2].set_ylim(core_ymin, core_ymax)
+# ax[2].set_title("Z-slice (X-Y, core zoom)")
+# ax[2].set_aspect("equal")
+# ax[2].legend()
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 
 # ==================================================
@@ -266,7 +266,7 @@ reg.alpha_x = 1
 reg.alpha_y = 1
 reg.alpha_z = 1
 
-opt = optimization.ProjectedGNCG(maxIter=20, upper=np.inf, lower=-np.inf)
+opt = optimization.ProjectedGNCG(maxIter=5, upper=np.inf, lower=-np.inf)
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
 coolingFactor = 2
@@ -278,10 +278,28 @@ beta = directives.BetaSchedule(
 )
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
 target = directives.TargetMisfit()
-# save_model = directives.SaveOutputDictEveryIteration(on_disk=True, directory=f".\out\{inversion_title}_models")
+save_model = directives.SaveOutputDictEveryIteration(on_disk=True, directory="/scratch/raglan_models/")
 
-directiveList = [betaest, beta, target]
+directiveList = [betaest, beta, target, save_model]
 
 inv = inversion.BaseInversion(invProb, directiveList=directiveList)
 opt.remember('xc')
 
+# ==================================================
+# Run the inversion and save the results
+# ==================================================
+
+minv = inv.run(m0)
+data_model = sim.dpred(minv)
+
+save_mesh = mesh.serialize()
+
+np.savez(
+    "/scratch/raglan_models/final_model.npz",
+    model=minv,
+    dpred=data_model,
+    freqs=freqs2use,
+    rx_locs=rx_locs,
+    mesh=save_mesh,
+    active_cells=active_cells
+)
