@@ -8,7 +8,7 @@ import numpy as np
 from mtpy import MTData
 from mtpy.core.mt import MT
 
-inversion = '3dinversion_results_01'
+inversion = '3dinversion_results_02'
 inversion_dir = Path(f'./out/{inversion}')
 pdf_filename = f"figures/{inversion}/misfits"
 

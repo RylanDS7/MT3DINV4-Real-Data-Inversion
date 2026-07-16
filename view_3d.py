@@ -27,7 +27,7 @@ from discretize import TreeMesh, TensorMesh
 from simpeg import utils
 import discretize
 
-inversion_dir = '3dinversion_results_01/'
+inversion_dir = '3dinversion_results_02/'
 
 with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
     model = data['model']
@@ -75,7 +75,7 @@ SCALAR_RANGE     = (np.log10(100), np.log10(1e5))  # e.g. (1.0, 6.0)
 # 3-D volume rendering — show the full model (air/inactive cells excluded)
 SHOW_3D_MODEL    = True   # set to True to render the 3-D volume in addition to slices
 MODEL_3D_OPACITY = 0.7    # opacity of the 3-D volume (0 = transparent, 1 = opaque)
-MODEL_3D_CUTOFF  = np.log10(500)    # only render cells whose scalar value is <= this cutoff;
+MODEL_3D_CUTOFF  = np.log10(200)    # only render cells whose scalar value is <= this cutoff;
                           # set to None to render all active cells
 
 # -------------------------------------------------------

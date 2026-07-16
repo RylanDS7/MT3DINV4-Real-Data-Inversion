@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 
-inversion_dir = '3dinversion_results_01/'
+inversion_dir = '3dinversion_results_02/'
 
 with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
     model = data['model']
@@ -51,7 +51,7 @@ with PdfPages(pdf_path) as pdf:
             grid=True,
             pcolor_opts={'cmap': 'viridis'},
         )
-        plt.colorbar(out[0], ax=ax, label='Conductivity')
+        plt.colorbar(out[0], ax=ax, label='Log10(Resistivity)')
 
         ax.set_xlim(y_min - y_pad, y_max + y_pad)
         ax.set_ylim(z_min - z_pad, z_max + z_pad)
