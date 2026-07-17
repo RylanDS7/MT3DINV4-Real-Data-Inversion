@@ -27,7 +27,7 @@ from discretize import TreeMesh, TensorMesh
 from simpeg import utils
 import discretize
 
-inversion_dir = '3dinversion_results_02/'
+inversion_dir = '3dinversion_results_04/'
 
 with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
     model = data['model']
@@ -70,12 +70,12 @@ EDGE_OPACITY     = 0.4         # 0 = invisible, 1 = fully opaque
 EDGE_LINE_WIDTH  = 0.5         # line width in screen pixels
 
 # Scalar range for the colorbar — set to None for auto
-SCALAR_RANGE     = (np.log10(100), np.log10(1e5))  # e.g. (1.0, 6.0)
+SCALAR_RANGE     = (np.log10(0.01), np.log10(5000))  # e.g. (1.0, 6.0)
 
 # 3-D volume rendering — show the full model (air/inactive cells excluded)
 SHOW_3D_MODEL    = True   # set to True to render the 3-D volume in addition to slices
 MODEL_3D_OPACITY = 0.7    # opacity of the 3-D volume (0 = transparent, 1 = opaque)
-MODEL_3D_CUTOFF  = np.log10(200)    # only render cells whose scalar value is <= this cutoff;
+MODEL_3D_CUTOFF  = np.log10(1)    # only render cells whose scalar value is <= this cutoff;
                           # set to None to render all active cells
 
 # -------------------------------------------------------
@@ -119,7 +119,7 @@ RECEIVER_LABEL       = "Receivers"  # legend entry label (set to None to hide le
 # -------------------------------------------------------
 CLIP_TO_CORE       = True    # set to False to show the full mesh
 CORE_HULL_RATIO    = 0.7     # 0.0 = tightest concave hull (alpha shape), 1.0 = convex hull
-CORE_PADDING       = 100.0   # metres the polygon is buffered outward from the receiver hull
+CORE_PADDING       = 1000.0   # metres the polygon is buffered outward from the receiver hull
 DEPTH_CUTOFF       = -800.0 # minimum elevation to render (bottom clip); set to None for full depth
 HEIGHT_CUTOFF      = 480    # maximum elevation to render (top clip);    set to None for full height
 SHOW_CLIP_POLYGON  = True     # draw the clipping polygon outline for reference
@@ -147,7 +147,8 @@ model_active = model
 # ============================================================
 
 model_full = np.full(mesh.nC, np.nan)
-model_full[active_cells] = 1/np.exp(model_active)  # convert log-sigma → resistivity for plotting
+model_full[active_cells] = 1/np.exp(model_active)
+print(np.mean(model_full[active_cells]))  # convert log-sigma → resistivity for plotting
 model_full[~active_cells] = INACTIVE_VALUE
 model_plot = np.log10(model_full)
 

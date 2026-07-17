@@ -221,7 +221,7 @@ actmap = maps.InjectActiveCells(
 )
 expmap = maps.ExpMap()
 
-sigma_background = 1/500
+sigma_background = 1/800
 
 m0 = (np.ones(mesh.nC) * np.log(sigma_background))[active_cells]
 mapping = expmap * actmap
@@ -261,7 +261,7 @@ reg = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg.alpha_s = 1e-5
+reg.alpha_s = 1e-2
 reg.alpha_x = 1
 reg.alpha_y = 1
 reg.alpha_z = 1
