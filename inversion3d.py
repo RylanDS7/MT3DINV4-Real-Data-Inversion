@@ -221,13 +221,17 @@ actmap = maps.InjectActiveCells(
 )
 expmap = maps.ExpMap()
 
-sigma_background = 1/800
+sigma_background = 1/1000
 
 m0 = (np.ones(mesh.nC) * np.log(sigma_background))[active_cells]
 mapping = expmap * actmap
 
-model = np.ones(mesh.nC) * 1e-8
-model[active_cells] = sigma_background
+# model = np.ones(mesh.nC) * np.log(1e-8)
+# model[active_cells] = np.log(sigma_background)
+
+mesh_1d = discretize.TensorMesh([hz], origin=np.array([mesh.origin[-1]]))
+model = 1e-8 * np.ones(mesh_1d.n_cells)
+model[mesh_1d.cell_centers < z_target] = sigma_background
 
 # create the simulation
 sim = nsem.simulation.Simulation3DPrimarySecondary(
@@ -261,7 +265,7 @@ reg = regularization.WeightedLeastSquares(
 )
 
 # set alpha length scales
-reg.alpha_s = 1e-2
+reg.alpha_s = 1e-9
 reg.alpha_x = 1
 reg.alpha_y = 1
 reg.alpha_z = 1
