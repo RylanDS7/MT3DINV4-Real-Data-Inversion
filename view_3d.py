@@ -27,7 +27,7 @@ from discretize import TreeMesh, TensorMesh
 from simpeg import utils
 import discretize
 
-inversion_dir = '3dinversion_results_06/'
+inversion_dir = '3dinversion_results_02/'
 
 with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
     model = data['model']
@@ -39,7 +39,7 @@ with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
 
 mesh = discretize.TensorMesh.deserialize(mesh)
 
-output = np.load(f'out/3dinversion_results_05/InversionModel_2026-07-17-15-21_24.npz', allow_pickle=True)["arr_0"].item()
+output = np.load(f'out/3dinversion_results_02/InversionModel_2026-07-14-21-19_15.npz', allow_pickle=True)["arr_0"].item()
 model = output['m']
 
 
@@ -79,7 +79,7 @@ SCALAR_RANGE     = (np.log10(100), np.log10(100000))
 # 3-D volume rendering — show the full model (air/inactive cells excluded)
 SHOW_3D_MODEL    = True   # set to True to render the 3-D volume in addition to slices
 MODEL_3D_OPACITY = 0.7    # opacity of the 3-D volume (0 = transparent, 1 = opaque)
-MODEL_3D_CUTOFF  = np.log10(900)    # only render cells whose scalar value is <= this cutoff;
+MODEL_3D_CUTOFF  = np.log10(500)    # only render cells whose scalar value is <= this cutoff;
                           # set to None to render all active cells
 
 # -------------------------------------------------------
@@ -124,7 +124,7 @@ RECEIVER_LABEL       = "Receivers"  # legend entry label (set to None to hide le
 CLIP_TO_CORE       = True    # set to False to show the full mesh
 CORE_HULL_RATIO    = 0.7     # 0.0 = tightest concave hull (alpha shape), 1.0 = convex hull
 CORE_PADDING       = 1000.0   # metres the polygon is buffered outward from the receiver hull
-DEPTH_CUTOFF       = -800.0 # minimum elevation to render (bottom clip); set to None for full depth
+DEPTH_CUTOFF       = -1000.0 # minimum elevation to render (bottom clip); set to None for full depth
 HEIGHT_CUTOFF      = 550    # maximum elevation to render (top clip);    set to None for full height
 SHOW_CLIP_POLYGON  = True     # draw the clipping polygon outline for reference
 CLIP_POLYGON_COLOR = "yellow"
