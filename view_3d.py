@@ -27,7 +27,7 @@ from discretize import TreeMesh, TensorMesh
 from simpeg import utils
 import discretize
 
-inversion_dir = '3dinversion_results_02/'
+inversion_dir = '3dinversion_results_08/'
 
 with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
     model = data['model']
@@ -39,8 +39,8 @@ with np.load(f'out/{inversion_dir}final_model.npz', allow_pickle=True) as data:
 
 mesh = discretize.TensorMesh.deserialize(mesh)
 
-output = np.load(f'out/3dinversion_results_02/InversionModel_2026-07-14-21-19_15.npz', allow_pickle=True)["arr_0"].item()
-model = output['m']
+# output = np.load(f'out/3dinversion_results_08/InversionModel_2026-07-21-13-51_01.npz', allow_pickle=True)["arr_0"].item()
+# model = output['m']
 
 
 # ============================================================
@@ -74,12 +74,12 @@ EDGE_OPACITY     = 0.4         # 0 = invisible, 1 = fully opaque
 EDGE_LINE_WIDTH  = 0.5         # line width in screen pixels
 
 # Scalar range for the colorbar — set to None for auto
-SCALAR_RANGE     = (np.log10(100), np.log10(100000)) 
+SCALAR_RANGE     = (np.log10(1), np.log10(10000)) 
 
 # 3-D volume rendering — show the full model (air/inactive cells excluded)
 SHOW_3D_MODEL    = True   # set to True to render the 3-D volume in addition to slices
 MODEL_3D_OPACITY = 0.7    # opacity of the 3-D volume (0 = transparent, 1 = opaque)
-MODEL_3D_CUTOFF  = np.log10(500)    # only render cells whose scalar value is <= this cutoff;
+MODEL_3D_CUTOFF  = np.log10(1)    # only render cells whose scalar value is <= this cutoff;
                           # set to None to render all active cells
 
 # -------------------------------------------------------
