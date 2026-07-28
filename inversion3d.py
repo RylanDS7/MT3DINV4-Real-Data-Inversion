@@ -11,7 +11,7 @@ import utm
 from mtpy import MTData
 from mtpy.core.mt import MT
 
-stations2invert = np.arange(1130, 1184, 1)
+stations2invert = np.arange(1195, 1206, 1)
 
 # ==================================================
 # Load data

@@ -11,8 +11,8 @@ import utm
 from mtpy import MTData
 from mtpy.core.mt import MT
 
-inversion_title = 'P03cf'
-stations2invert = np.arange(1151, 1162, 1)
+inversion_title = 'P06cf'
+stations2invert = np.arange(1184, 1195, 1)
 
 # ==================================================
 # Load data
@@ -229,7 +229,7 @@ sim_te = nsem.simulation.Simulation2DElectricField(
 
 print('Getting things started on inversion...')
 
-floor = 0.03
+floor = 0.07
 percent = 0.05
 
 data_obj_te.standard_deviation = np.abs(data_vec_te) * percent + floor
@@ -275,27 +275,27 @@ inv_tetm = inversion.BaseInversion(invProb_tetm, directiveList=directiveList)
 opt_tetm.remember('xc')
 
 
-# Check forward simulation of halfspace model
-dpred_te = sim_te.dpred(m0)
-dpred_tm = sim_tm.dpred(m0)
+# # Check forward simulation of halfspace model
+# dpred_te = sim_te.dpred(m0)
+# dpred_tm = sim_tm.dpred(m0)
 
-np.save("out/data_te.npy", data_vec_te)
-np.save("out/data_tm.npy", data_vec_tm)
+# np.save("out/data_te.npy", data_vec_te)
+# np.save("out/data_tm.npy", data_vec_tm)
 
-ind = np.arange(len(dpred_te))
-step = mtd.n_stations * 2
-for i in np.arange(step):
-    plt.figure()
-    plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
-    plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
-    plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
-    plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
-    if step - i > mtd.n_stations:
-        plt.title(f"Real Impedance, Station {i}")
-    else:
-        plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
-    plt.legend()
-    plt.show()
+# ind = np.arange(len(dpred_te))
+# step = mtd.n_stations * 2
+# for i in np.arange(step):
+#     plt.figure()
+#     plt.plot(ind[i::step], dpred_te[i::step], 'x-', label='TE Predicted')
+#     plt.plot(ind[i::step], dpred_tm[i::step], 'x-', label='TM Predicted')
+#     plt.plot(ind[i::step], data_vec_te[i::step], 's-', label='TE Observed')
+#     plt.plot(ind[i::step], data_vec_tm[i::step], 's-', label='TM Observed')
+#     if step - i > mtd.n_stations:
+#         plt.title(f"Real Impedance, Station {i}")
+#     else:
+#         plt.title(f"Imag Impedance, Station {i - mtd.n_stations}")     
+#     plt.legend()
+#     plt.show()
 
 # ==================================================
 # Run the inversion and save the results
